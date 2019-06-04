@@ -2,13 +2,11 @@
  * Install plugin.
  */
 
-import Field from './field';
-import Fields from './fields.vue';
+import Fields from './fields';
 import Util, {log} from './util';
 
 const Plugin = {
 
-    Field,
     Fields,
 
     install(Vue) {
@@ -17,9 +15,9 @@ const Plugin = {
             return;
         }
 
-        Util(Vue); log(this.version);
+        Util(Vue);
+        log(this.version);
 
-        Vue.component('field', Field);
         Vue.component('fields', Fields);
     },
 

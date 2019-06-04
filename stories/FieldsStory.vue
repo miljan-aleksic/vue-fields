@@ -9,24 +9,14 @@
             <div class="col-md-6">
 
                 <div class="panel panel-default">
-                    <div class="panel-heading"><h2 class="panel-title">Default</h2></div>
-
-                    <Fields :config="$options.fields" :values="values" @change="logChange"/>
-                </div>
-
-            </div>
-
-            <div class="col-md-6">
-
-                <div class="panel panel-default">
 
                     <div class="panel-heading"><h2 class="panel-title">Custom</h2></div>
 
                     <Fields :config="$options.fields" :values="values" class="panel-body" tag="fieldset" @change="logChange">
-                        <template v-slot:default="{fields, evaluate}">
-                            <div v-for="field in fields" v-show="evaluate(field.show)" :key="field.name" class="form-group">
+                        <template v-slot="{field, evaluate}">
+                            <div v-show="evaluate(field.show)" class="form-group">
                                 <label v-if="field.type !== 'checkbox'">{{ field.label }}</label>
-                                <component :is="field.component" :field="field" class="form-control"/>
+                                <component :is="field.component || `field-${field.type}`" :field="field"/>
                             </div>
                         </template>
                     </Fields>
@@ -45,8 +35,14 @@
 
 <script>
 
-    import Fields from 'vue-fields/fields.vue';
-    import * as FieldComponents from 'vue-fields/components';
+    import Fields from 'vue-fields/fields';
+    import FieldText from './components/Text';
+    import FieldTextarea from './components/Textarea';
+    import FieldMulti from './components/Multi';
+    import FieldSelect from './components/Select';
+    import FieldNumber from './components/Number';
+    import FieldCheckbox from './components/Checkbox';
+
     import {action} from '@storybook/addon-actions';
 
     export default {
@@ -54,7 +50,8 @@
         fields: {
 
             text: {
-                label: 'Text'
+                label: 'Text',
+                type: 'text'
             },
 
             textarea: {
@@ -78,10 +75,10 @@
                 type: 'number'
             },
 
-            // custom: {
-            //     label: 'Custom',
-            //     type: 'custom'
-            // },
+            // // custom: {
+            // //     label: 'Custom',
+            // //     type: 'custom'
+            // // },
 
             show: {
                 type: 'checkbox',
@@ -108,23 +105,40 @@
             'nested.text': {
                 label: 'Nested Text',
                 type: 'text'
+            },
+
+            multi: {
+                label: 'Multi',
+                type: 'Multi'
             }
 
         },
 
         components: {
             Fields,
-            ...FieldComponents
+            FieldText,
+            FieldTextarea,
+            FieldSelect,
+            FieldNumber,
+            FieldCheckbox,
+            FieldMulti
         },
 
         data: () => ({
-            values: {}
+            values: {
+                text: 'Text',
+                multi: {
+                    input: 'Input'
+                }
+            }
         }),
 
         methods: {
+
             logChange(value, {name}) {
                 action(`@change (${name})`)(value);
             }
+
         }
 
     };

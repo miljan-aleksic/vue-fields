@@ -50,6 +50,7 @@ module.exports = {
         "vue/html-self-closing": ["error", {"html": {"normal": "never"}}],
         "vue/max-attributes-per-line": "off",
         "vue/require-default-prop": "off",
-        "vue/require-v-for-key": "off"
+        "vue/require-v-for-key": "off",
+        "vue/require-prop-types": "off"
     }
 };

@@ -28,7 +28,7 @@ module.exports = [
     {
         file: `dist/${name}.esm.js`,
         format: 'es',
-        footer: 'export {Field, Fields};'
+        footer: 'export {Fields};'
     },
     {
         file: `dist/${name}.common.js`,
@@ -41,7 +41,7 @@ module.exports = [
     output: {banner: license, ...output},
     plugins: [
         vue(),
-        babel({extensions: ['.js', '.vue']}),
+        babel({extensions: ['.js']}),
         replace({__VERSION__: version}),
     ].concat(output.plugins)
 

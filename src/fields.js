@@ -56,9 +56,8 @@ export default {
 
             const opts = [];
 
-            if (!options) {
-                warn(`Invalid options provided for ${this.name}`);
-                return opts;
+            if (isArray(options)) {
+                return options;
             }
 
             each(options, (value, name) => {

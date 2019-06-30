@@ -39,6 +39,12 @@ function warn(message, color) {
 function isObject(obj) {
   return obj !== null && typeof obj === 'object';
 }
+function isString(val) {
+  return typeof val === 'string';
+}
+function isFunction(val) {
+  return typeof val === 'function';
+}
 function isUndefined(val) {
   return typeof val === 'undefined';
 }
@@ -69,6 +75,24 @@ function set(obj, key, val) {
   }
 
   _set(obj, parts.shift(), val);
+}
+var parsedFunc = {};
+var expressionRe = /((?:\d|true|false|null|undefined|(?:this\.|\$)[\w.$]+|\W)*)([\w][\w.]*)?/g;
+var quotedStringRe = /([^"']+)((.)(?:[^\3\\]|\\.)*?\3|.)?/g;
+function parse(expr) {
+  return parsedFunc[expr] = parsedFunc[expr] || Function('$values', '$context', "with($context){return " + expr.replace(quotedStringRe, function (match, unquoted, quoted) {
+    if (quoted === void 0) {
+      quoted = '';
+    }
+
+    return unquoted.replace(expressionRe, function (match, prefix, expression) {
+      if (prefix === void 0) {
+        prefix = '';
+      }
+
+      return match ? "" + prefix + (expression ? "$get('" + expression + "')" : '') : '';
+    }) + quoted;
+  }) + "}");
 }
 function each(obj, iterator) {
   var i, key;
@@ -105,63 +129,45 @@ function _assign(target) {
 }
 
 var Field = {
-  inject: ['values'],
-  props: {
-    field: {
-      type: Object,
-      required: true
-    }
-  },
-  computed: {
-    $value: {
-      get: function get$$1() {
-        return this.getValue(this.values, this.field.name);
-      },
-      set: function set$$1(value) {
-        this.setValue(value);
-      }
-    }
-  },
-  methods: {
-    getValue: function getValue() {
-      return get(this.values, this.field.name);
-    },
-    setValue: function setValue(value) {
-      set(this.values, this.field.name, value);
-      this.$emit('change', value);
-    },
-    filterOptions: function filterOptions(options) {
-      var _this = this;
+  functional: true,
+  render: function render(h, _ref) {
+    var data = _ref.data;
 
-      var opts = [];
-
-      if (!options) {
-        warn("Invalid options provided for " + this.name);
-        return opts;
-      }
-
-      each(options, function (value, name) {
-        if (isObject(value)) {
-          opts.push({
-            label: name,
-            options: _this.filterOptions(value)
-          });
-        } else {
-          opts.push({
-            text: name,
-            value: value
-          });
-        }
+    if (data.scopedSlots["default"]) {
+      return data.scopedSlots["default"]({
+        filterOptions: filterOptions
       });
-      return opts;
     }
   }
 };
 
+function filterOptions(options) {
+  var opts = [];
+
+  if (isArray(options)) {
+    return options;
+  }
+
+  each(options, function (value, name) {
+    if (isObject(value)) {
+      opts.push({
+        label: name,
+        options: filterOptions(value)
+      });
+    } else {
+      opts.push({
+        text: name,
+        value: value
+      });
+    }
+  });
+  return opts;
+}
+
 var Fields = {
   provide: function provide() {
     return {
-      values: this.values
+      Fields: this
     };
   },
   props: {
@@ -177,19 +183,15 @@ var Fields = {
         return {};
       }
     },
-    prefix: {
-      type: String,
-      "default": 'field-'
-    },
     tag: {
       type: String,
       "default": 'div'
     }
   },
   methods: {
-    prepare: function prepare(config, prefix) {
-      var arr = isArray(config),
-          fields = [];
+    prepare: function prepare(config) {
+      var fields = [];
+      var arr = isArray(config);
       each(config, function (field, key) {
         field = assign({}, field);
 
@@ -197,24 +199,47 @@ var Fields = {
           field.name = key;
         }
 
-        if (field.name) {
-          if (!field.type) {
-            field.type = 'text';
-          }
-
-          if (!field.component) {
-            field.component = prefix + field.type;
-          }
-
-          fields.push(field);
-        } else {
+        if (!field.name) {
           warn("Field name missing " + JSON.stringify(field));
+          return;
         }
+
+        fields.push(field);
       });
       return fields;
+    },
+    evaluate: function evaluate(expression, values) {
+      if (values === void 0) {
+        values = this.values;
+      }
+
+      try {
+        if (isUndefined(expression)) {
+          return true;
+        }
+
+        if (isString(expression)) {
+          expression = parse(expression);
+        }
+
+        if (isFunction(expression)) {
+          return expression.call(this, values, {
+            $match: $match,
+            $get: function $get(key) {
+              return get(values, key);
+            }
+          });
+        }
+
+        return expression;
+      } catch (e) {
+        warn(e);
+      }
+
+      return true;
     }
   },
-  render: function render(h, ctx) {
+  render: function render(h) {
     var _this = this;
 
     var fields = this.prepare(this.config, this.prefix);
@@ -225,14 +250,28 @@ var Fields = {
     }
 
     return h(this.tag, fields.map(function (field) {
-      return _this.$scopedSlots["default"]({
-        field: field
+      var obj = {
+        field: field,
+        evaluate: _this.evaluate
+      };
+      Object.defineProperty(field, 'value', {
+        get: function get$$1() {
+          return get(_this.values, field.name);
+        },
+        set: function set$$1(value) {
+          set(_this.values, field.name, value);
+
+          _this.$emit('change', value, field);
+        }
       });
+      return _this.$scopedSlots["default"](obj);
     }));
   }
-}; // function $match(subject, pattern, flags) {
-//     return subject && (new RegExp(pattern, flags).test(subject));
-// }
+};
+
+function $match(subject, pattern, flags) {
+  return subject && new RegExp(pattern, flags).test(subject);
+}
 
 /**
  * Install plugin.
@@ -247,7 +286,6 @@ var Plugin = {
 
     Util(Vue);
     log(this.version);
-    Vue.component('field', Field);
     Vue.component('fields', Fields);
   },
   version: '1.1.2'

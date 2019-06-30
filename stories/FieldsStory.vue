@@ -12,13 +12,58 @@
 
                     <div class="panel-heading"><h2 class="panel-title">Custom</h2></div>
 
-                    <Fields :config="$options.fields" :values="values" class="panel-body" tag="fieldset" @change="logChange">
-                        <template v-slot="{field, evaluate}">
+                    <Fields v-slot="{field, evaluate}" :config="$options.fields" :values="values" class="panel-body" tag="fieldset" @change="logChange">
+                        <Field v-slot="{filterOptions}">
+
                             <div v-show="evaluate(field.show)" class="form-group">
+
                                 <label v-if="field.type !== 'checkbox'">{{ field.label }}</label>
-                                <component :is="field.component || `field-${field.type}`" :field="field"/>
+
+                                <!-- text -->
+                                <template v-if="field.type === 'text'">
+
+                                    <input v-model="field.value" type="text" class="form-control">
+
+                                </template>
+
+                                <!-- textarea -->
+                                <template v-if="field.type === 'textarea'">
+
+                                    <textarea v-model="field.value" class="form-control"></textarea>
+
+                                </template>
+
+                                <!-- number -->
+                                <template v-if="field.type === 'number'">
+
+                                    <input v-model="field.value" type="number" class="form-control">
+
+                                </template>
+
+                                <!-- checkbox -->
+                                <template v-if="field.type === 'checkbox'">
+
+                                    <input v-model="field.value" type="checkbox">
+
+                                </template>
+
+                                <!-- select -->
+                                <template v-if="field.type === 'select'">
+
+                                    <select v-model="field.value" class="form-control">
+                                        <template v-for="option in filterOptions(field.options || [])">
+                                            <optgroup v-if="option.label" :label="option.label" :key="option.label">
+                                                <option v-for="opt in option.options" :value="opt.value" :key="opt.value">{{ opt.text }}</option>
+                                            </optgroup>
+                                            <option v-else :value="option.value" :key="option.label">{{ option.text }}</option>
+                                        </template>
+                                    </select>
+
+                                </template>
+
                             </div>
-                        </template>
+
+                        </Field>
                     </Fields>
 
                 </div>
@@ -35,13 +80,8 @@
 
 <script>
 
+    import Field from 'vue-fields/field';
     import Fields from 'vue-fields/fields';
-    import FieldText from './components/Text';
-    import FieldTextarea from './components/Textarea';
-    import FieldMulti from './components/Multi';
-    import FieldSelect from './components/Select';
-    import FieldNumber from './components/Number';
-    import FieldCheckbox from './components/Checkbox';
 
     import {action} from '@storybook/addon-actions';
 
@@ -106,23 +146,13 @@
             'nested.text': {
                 label: 'Nested Text',
                 type: 'text'
-            },
-
-            multi: {
-                label: 'Multi',
-                type: 'Multi'
             }
 
         },
 
         components: {
-            Fields,
-            FieldText,
-            FieldTextarea,
-            FieldSelect,
-            FieldNumber,
-            FieldCheckbox,
-            FieldMulti
+            Field,
+            Fields
         },
 
         data: () => ({

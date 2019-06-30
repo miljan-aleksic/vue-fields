@@ -2,11 +2,13 @@
  * Install plugin.
  */
 
+import Field from './field';
 import Fields from './fields';
 import Util, {log} from './util';
 
 const Plugin = {
 
+    Field,
     Fields,
 
     install(Vue) {

@@ -28,7 +28,7 @@ module.exports = [
     {
         file: `dist/${name}.esm.js`,
         format: 'es',
-        footer: 'export {Fields};'
+        footer: 'export {Field, Fields};'
     },
     {
         file: `dist/${name}.common.js`,

@@ -132,42 +132,6 @@
       return target;
     }
 
-    var Field = {
-      functional: true,
-      render: function render(h, _ref) {
-        var data = _ref.data;
-
-        if (data.scopedSlots["default"]) {
-          return data.scopedSlots["default"]({
-            filterOptions: filterOptions
-          });
-        }
-      }
-    };
-
-    function filterOptions(options) {
-      var opts = [];
-
-      if (isArray(options)) {
-        return options;
-      }
-
-      each(options, function (value, name) {
-        if (isObject(value)) {
-          opts.push({
-            label: name,
-            options: filterOptions(value)
-          });
-        } else {
-          opts.push({
-            text: name,
-            value: value
-          });
-        }
-      });
-      return opts;
-    }
-
     var Fields = {
       provide: function provide() {
         return {
@@ -241,10 +205,34 @@
           }
 
           return true;
+        },
+        filterOptions: function filterOptions(options) {
+          var _this = this;
+
+          var opts = [];
+
+          if (isArray(options)) {
+            return options;
+          }
+
+          each(options, function (value, name) {
+            if (isObject(value)) {
+              opts.push({
+                label: name,
+                options: _this.filterOptions(value)
+              });
+            } else {
+              opts.push({
+                text: name,
+                value: value
+              });
+            }
+          });
+          return opts;
         }
       },
       render: function render(h) {
-        var _this = this;
+        var _this2 = this;
 
         var fields = this.prepare(this.config, this.prefix);
 
@@ -256,19 +244,20 @@
         return h(this.tag, fields.map(function (field) {
           var obj = {
             field: field,
-            evaluate: _this.evaluate
+            evaluate: _this2.evaluate,
+            filterOptions: _this2.filterOptions
           };
           Object.defineProperty(field, 'value', {
             get: function get$$1() {
-              return get(_this.values, field.name);
+              return get(_this2.values, field.name);
             },
             set: function set$$1(value) {
-              set(_this.values, field.name, value);
+              set(_this2.values, field.name, value);
 
-              _this.$emit('change', value, field);
+              _this2.$emit('change', value, field);
             }
           });
-          return _this.$scopedSlots["default"](obj);
+          return _this2.$scopedSlots["default"](obj);
         }));
       }
     };
@@ -281,7 +270,6 @@
      * Install plugin.
      */
     var Plugin = {
-      Field: Field,
       Fields: Fields,
       install: function install(Vue) {
         if (this.installed) {

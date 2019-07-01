@@ -1,4 +1,4 @@
-import {assign, each, set, get, parse, isArray, isString, isFunction, isUndefined, warn} from './util';
+import {assign, each, set, get, parse, isArray, isString, isFunction, isUndefined, isObject, warn} from './util';
 
 export default {
 
@@ -75,6 +75,28 @@ export default {
             }
 
             return true;
+        },
+
+        filterOptions(options) {
+
+            const opts = [];
+
+            if (isArray(options)) {
+                return options;
+            }
+
+            each(options, (value, name) => {
+
+                if (isObject(value)) {
+                    opts.push({label: name, options: this.filterOptions(value)});
+                } else {
+                    opts.push({text: name, value: value});
+                }
+
+            });
+
+            return opts;
+
         }
 
     },
@@ -92,7 +114,8 @@ export default {
 
             const obj = {
                 field,
-                evaluate: this.evaluate
+                evaluate: this.evaluate,
+                filterOptions: this.filterOptions
             };
 
             Object.defineProperty(field, 'value', {
